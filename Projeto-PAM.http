@@ -1,0 +1,6 @@
+@Projeto_PAM_HostAddress = http://localhost:5135
+
+GET {{Projeto_PAM_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
