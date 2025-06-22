@@ -16,6 +16,7 @@ namespace Projeto_PAM.Models
         public byte[]? PasswordSalt { get; set; }
         public string? Foto { get; set; }
         
+        
         [NotMapped]
         public string PasswordString { get; set; } = string.Empty;
         

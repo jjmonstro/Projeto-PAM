@@ -16,7 +16,7 @@ namespace Projeto_PAM.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly DataContext _context;
-        
+
         public UsuariosController(DataContext context)
         {
             _context = context;
@@ -24,85 +24,29 @@ namespace Projeto_PAM.Controllers
 
         private async Task<bool> UsuarioExistente(string username)
         {
-            if(await _context.TB_USUARIOS.AnyAsync(x => x.Username.ToLower() == username.ToLower()))
+            if (await _context.TB_USUARIOS.AnyAsync(x => x.Username.ToLower() == username.ToLower()))
             {
                 return true;
             }
-            
+
             return false;
         }
 
-        [HttpPost("Registrar")] 
-        public async Task<IActionResult> RegistrarUsuario (Usuario user) 
-        { 
-            try 
-            { 
-                if (await UsuarioExistente(user.Username)) 
-                throw new System.Exception("Nome de usuário já existe"); 
-
-                Criptografia.CriarPasswordHash (user.PasswordString, out byte[] hash, out byte[] salt); 
-                user.PasswordString = string.Empty; 
-                user.PasswordHash = hash; 
-                user.PasswordSalt = salt; 
-                await _context.TB_USUARIOS.AddAsync (user); 
-                await _context.SaveChangesAsync(); 
-                return Ok (user.Id); 
-            } 
-            catch (System.Exception ex) 
-            { 
-                return BadRequest(ex.Message); 
-            }
-        }
-
-        // [HttpPost("Autenticar")] 
-        // public async Task<IActionResult> AutenticarUsuario(Usuario credenciais) 
-        // { 
-        //     try 
-        //     { 
-        //         Usuario? usuario = await _context.TB_USUARIOS.FirstOrDefaultAsync(x => x. Username. ToLower().Equals(credenciais.Username.ToLower())); 
-                
-        //         if (usuario == null) 
-        //         { 
-        //             throw new System.Exception("Usuário não encontrado."); 
-        //         } 
-                
-        //         else if (!Criptografia.VerificarPasswordHash(credenciais.PasswordString, usuario.PasswordHash, usuario.PasswordSalt)) 
-        //         { 
-        //             throw new System.Exception("Senha incorreta."); 
-        //         } 
-        //         else 
-        //         { 
-                    
-        //             _context.TB_USUARIOS.Update(usuario);
-        //             await _context.SaveChangesAsync();
-        //             return Ok(usuario);
-        //         } 
-        //     } 
-        //     catch (System.Exception ex) 
-        //     { 
-        //         return BadRequest(ex.Message); 
-        //     } 
-        // }
-
-        [HttpPut("AlterarSenha")]
-        public async Task<IActionResult> AlterarSenha(Usuario usuario)
+        [HttpPost("Registrar")]
+        public async Task<IActionResult> RegistrarUsuario(Usuario user)
         {
             try
             {
-                Usuario? usuarioAchado = await _context.TB_USUARIOS.FirstOrDefaultAsync(u => u.Id == usuario.Id);
-                if (usuario == null)
-                {
-                    return NotFound("Usuário não encontrado.");
-                }
+                if (await UsuarioExistente(user.Username))
+                    throw new System.Exception("Nome de usuário já existe");
 
-                Criptografia.CriarPasswordHash(usuario.PasswordString, out byte[] hash, out byte[] salt);
-                usuario.PasswordHash = hash;
-                usuario.PasswordSalt = salt;
-
-                _context.TB_USUARIOS.Update(usuario);
+                Criptografia.CriarPasswordHash(user.PasswordString, out byte[] hash, out byte[] salt);
+                user.PasswordString = string.Empty;
+                user.PasswordHash = hash;
+                user.PasswordSalt = salt;
+                await _context.TB_USUARIOS.AddAsync(user);
                 await _context.SaveChangesAsync();
-
-                return Ok("Senha alterada com sucesso.");
+                return Ok(user.Id);
             }
             catch (System.Exception ex)
             {
@@ -110,7 +54,63 @@ namespace Projeto_PAM.Controllers
             }
         }
 
-       
+        [HttpPost("Autenticar")]
+        public async Task<IActionResult> AutenticarUsuario(Usuario credenciais)
+        {
+            try
+            {
+                Usuario? usuario = await _context.TB_USUARIOS.FirstOrDefaultAsync(x => x.Username.ToLower().Equals(credenciais.Username.ToLower()));
+
+                if (usuario == null)
+                {
+                    throw new System.Exception("Usuário não encontrado.");
+                }
+
+                else if (!Criptografia.VerificarPasswordHash(credenciais.PasswordString, usuario.PasswordHash, usuario.PasswordSalt))
+                {
+                    throw new System.Exception("Senha incorreta.");
+                }
+                else
+                {
+
+                    _context.TB_USUARIOS.Update(usuario);
+                    await _context.SaveChangesAsync();
+                    return Ok(usuario);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("AlterarSenha")]
+        public async Task<IActionResult> AlterarSenha(Usuario usuario)
+        {
+            try
+            {
+                Usuario? usuarioAchado = await _context.TB_USUARIOS.FirstOrDefaultAsync(u => u.Id == usuario.Id);
+                if (usuarioAchado == null)
+                {
+                    return NotFound("Usuário não encontrado.");
+                }
+
+                Criptografia.CriarPasswordHash(usuario.PasswordString, out byte[] hash, out byte[] salt);
+                usuarioAchado.PasswordHash = hash;
+                usuarioAchado.PasswordSalt = salt;
+
+                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
+
+                return Ok(usuarioAchado);
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+
         [HttpGet]
         public async Task<IActionResult> GetUsuarios()
         {
@@ -125,7 +125,7 @@ namespace Projeto_PAM.Controllers
             }
             catch (System.Exception ex)
             {
-                return BadRequest(ex.Message+ " - " + ex.InnerException);
+                return BadRequest(ex.Message + " - " + ex.InnerException);
             }
         }
 
@@ -147,11 +147,11 @@ namespace Projeto_PAM.Controllers
                     return NotFound("Usuário seguidor não encontrado.");
                 }
 
-                if(usuarioSeguidor.Seguindo?.Any(x => x.Id == idSeguido) == true)
+                if (usuarioSeguidor.Seguindo?.Any(x => x.Id == idSeguido) == true)
                 {
                     return BadRequest("Você já está seguindo este usuário.");
                 }
-                
+
                 usuarioSeguidor.Seguindo?.Append(usuarioSeguido);
                 usuarioSeguido.Seguidores?.Append(usuarioSeguidor);
 
@@ -162,5 +162,28 @@ namespace Projeto_PAM.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpDelete("Deletar/{id}")]
+        public async Task<IActionResult> DeletarUsuario(int id)
+        {
+            try
+            {
+                Usuario? usuario = await _context.TB_USUARIOS.FirstOrDefaultAsync(x => x.Id == id);
+                if (usuario == null)
+                {
+                    return NotFound("Usuário não encontrado.");
+                }
+
+                _context.TB_USUARIOS.Remove(usuario);
+                await _context.SaveChangesAsync();
+                return Ok("Usuário deletado com sucesso.");
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            
+        }
+        
     }
 }
